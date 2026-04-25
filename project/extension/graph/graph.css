@@ -53,6 +53,12 @@
   margin-left: auto;
 }
 
+#gh-repo-graph-section .ghrg-search-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
 #gh-repo-graph-section #ghrg-search-input {
   width: 230px;
   max-width: 42vw;
@@ -62,6 +68,60 @@
   color: var(--ghrg-title);
   font-size: 12px;
   padding: 6px 10px;
+}
+
+#gh-repo-graph-section .ghrg-suggest-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 230px;
+  max-width: 42vw;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--ghrg-panel-bg);
+  border: 1px solid var(--ghrg-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(1, 4, 9, 0.18);
+  padding: 6px;
+  display: none;
+  z-index: 50;
+}
+
+#gh-repo-graph-section .ghrg-suggest-panel.is-visible {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#gh-repo-graph-section .ghrg-suggest-item {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ghrg-title);
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+#gh-repo-graph-section .ghrg-suggest-item:hover,
+#gh-repo-graph-section .ghrg-suggest-item:focus {
+  border-color: var(--ghrg-header-border);
+  background: var(--ghrg-header-bg);
+}
+
+#gh-repo-graph-section .ghrg-suggest-primary {
+  font-weight: 600;
+  color: var(--ghrg-title);
+}
+
+#gh-repo-graph-section .ghrg-suggest-secondary {
+  font-size: 11px;
+  color: var(--ghrg-subtitle);
+  word-break: break-all;
 }
 
 #gh-repo-graph-section #ghrg-search-btn {
@@ -157,6 +217,11 @@
 
   #gh-repo-graph-section #ghrg-search-input {
     flex: 1;
+    max-width: none;
+  }
+
+  #gh-repo-graph-section .ghrg-suggest-panel {
+    min-width: 100%;
     max-width: none;
   }
 }

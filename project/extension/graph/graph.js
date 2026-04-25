@@ -13,6 +13,7 @@
       this.anchorRetryCount = 0;
       this.maxAnchorRetries = 12;
       this.searchHighlightTimer = null;
+      this.suggestHideTimer = null;
     }
 
     getThemeMode() {
@@ -143,7 +144,10 @@
               <p class="ghrg-subtitle">Auto-generated from repository source files</p>
             </div>
             <div class="ghrg-search-wrap">
-              <input id="ghrg-search-input" type="text" placeholder="Search function..." />
+              <div class="ghrg-search-field">
+                <input id="ghrg-search-input" type="text" placeholder="Search function..." />
+                <div id="ghrg-search-suggest" class="ghrg-suggest-panel" role="listbox"></div>
+              </div>
               <button id="ghrg-search-btn" type="button">Find</button>
               <span id="ghrg-search-feedback" aria-live="polite"></span>
             </div>
@@ -198,8 +202,9 @@
     bindSearchControls(section) {
       const input = section.querySelector("#ghrg-search-input");
       const button = section.querySelector("#ghrg-search-btn");
+      const suggestPanel = section.querySelector("#ghrg-search-suggest");
 
-      if (!input || !button || input.dataset.bound === "true") {
+      if (!input || !button || !suggestPanel || input.dataset.bound === "true") {
         return;
       }
 
@@ -217,7 +222,125 @@
         }
       });
 
+      input.addEventListener("input", () => {
+        this.updateSuggestPanel(input, suggestPanel);
+      });
+
+      input.addEventListener("focus", () => {
+        this.updateSuggestPanel(input, suggestPanel);
+      });
+
+      input.addEventListener("blur", () => {
+        if (this.suggestHideTimer) {
+          window.clearTimeout(this.suggestHideTimer);
+        }
+        this.suggestHideTimer = window.setTimeout(() => {
+          this.hideSuggestPanel(suggestPanel);
+        }, 120);
+      });
+
       input.dataset.bound = "true";
+    }
+
+    updateSuggestPanel(input, suggestPanel) {
+      if (!this.cy) {
+        this.hideSuggestPanel(suggestPanel);
+        return;
+      }
+
+      const query = String(input.value || "").trim().toLowerCase();
+      if (!query) {
+        this.hideSuggestPanel(suggestPanel);
+        return;
+      }
+
+      const items = this.collectSuggestions(query).slice(0, 6);
+      if (!items.length) {
+        this.hideSuggestPanel(suggestPanel);
+        return;
+      }
+
+      this.renderSuggestItems(items, suggestPanel, input);
+    }
+
+    collectSuggestions(query) {
+      const nodes = this.cy ? this.cy.nodes() : [];
+      const results = [];
+      const seen = new Set();
+
+      nodes.forEach((node) => {
+        const label = String(node.data("label") || "");
+        const fullId = String(node.data("fullId") || "");
+        if (!label && !fullId) {
+          return;
+        }
+        const haystack = `${label} ${fullId}`.toLowerCase();
+        if (!haystack.includes(query)) {
+          return;
+        }
+        const key = fullId || label;
+        if (seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        results.push({
+          label: label || fullId,
+          fullId: fullId || label
+        });
+      });
+
+      const startsWith = (item) =>
+        item.label.toLowerCase().startsWith(query) || item.fullId.toLowerCase().startsWith(query);
+
+      return results.sort((a, b) => {
+        const aStart = startsWith(a) ? 0 : 1;
+        const bStart = startsWith(b) ? 0 : 1;
+        if (aStart !== bStart) {
+          return aStart - bStart;
+        }
+        return a.label.localeCompare(b.label);
+      });
+    }
+
+    renderSuggestItems(items, suggestPanel, input) {
+      suggestPanel.innerHTML = "";
+      items.forEach((item) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "ghrg-suggest-item";
+
+        const primary = document.createElement("span");
+        primary.className = "ghrg-suggest-primary";
+        primary.textContent = item.label;
+
+        const secondary = document.createElement("span");
+        secondary.className = "ghrg-suggest-secondary";
+        secondary.textContent = item.fullId;
+
+        button.appendChild(primary);
+        if (item.fullId && item.fullId !== item.label) {
+          button.appendChild(secondary);
+        }
+
+        button.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+        });
+
+        button.addEventListener("click", () => {
+          input.value = item.fullId || item.label;
+          this.hideSuggestPanel(suggestPanel);
+          this.searchAndHighlight(input.value || "");
+        });
+
+        suggestPanel.appendChild(button);
+      });
+
+      suggestPanel.classList.add("is-visible");
+    }
+
+    hideSuggestPanel(suggestPanel) {
+      suggestPanel.classList.remove("is-visible");
+      suggestPanel.innerHTML = "";
     }
 
     searchAndHighlight(rawQuery) {
