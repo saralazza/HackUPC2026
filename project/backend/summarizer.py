@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
 from github_client import CommitData, CommitFile
@@ -15,22 +16,15 @@ class CommitSummarizer:
     def __init__(self, llm_client: GitHubModelsClient, max_chunk_chars: int = 12000) -> None:
         self.llm_client = llm_client
         self.max_chunk_chars = max_chunk_chars
+        self._prompt_template = None
 
     def summarize(self, commit_data: CommitData) -> SummaryResult:
         chunks = self._chunk_diff_by_file(commit_data.files)
 
         if not chunks:
-            fallback = (
-                "1. High-level summary of what changed\n"
-                "No textual diff was available.\n\n"
-                "2. Key technical changes\n"
-                "The commit metadata was retrieved, but patch content is missing (likely binary or truncated files).\n\n"
-                "3. Possible intent or reason\n"
-                f"Based on the commit message, likely intent: {commit_data.message}\n\n"
-                "4. Important or risky changes\n"
-                "Risk is unknown because textual patches were not available for review."
-            )
-            return SummaryResult(summary=fallback, chunk_count=0)
+            prompt = self._render_prompt(commit_data)
+            summary = self.llm_client._chat(prompt, "")
+            return SummaryResult(summary=summary, chunk_count=0)
 
         if len(chunks) == 1:
             summary = self.llm_client.summarize_chunk(
@@ -124,3 +118,19 @@ class CommitSummarizer:
             chunks.append("\n".join(bucket))
 
         return chunks
+
+    def _load_prompt_template(self) -> str:
+        if self._prompt_template is not None:
+            return self._prompt_template
+
+        prompt_path = Path(__file__).resolve().parent / "summarizer_prompt.txt"
+        self._prompt_template = prompt_path.read_text(encoding="utf-8")
+        return self._prompt_template
+
+    def _render_prompt(self, commit_data: CommitData) -> str:
+        template = self._load_prompt_template()
+        template = template.replace("{commit_data.author_name}", commit_data.author_name or "Unknown author")
+        template = template.replace("{commit_data.message}", commit_data.message)
+        template = template.replace("{commit_data.patch}", commit_data.patch or "Unknown patch")
+        template = template.replace("```markdown", "").replace("```", "")
+        return template

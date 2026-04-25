@@ -2,3 +2,4 @@
 *.db
 *.pyc
 /project/backend/graph/__pycache__/
+/project/.env

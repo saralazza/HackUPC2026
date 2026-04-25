@@ -106,6 +106,9 @@
         <div class="ghrm-gauge-wrap">
           <div id="ghrm-gauge"></div>
         </div>
+        <p class="ghrm-note">
+          The risk factor of a function is computed considering the change frequency, usage frequency by other functions and average amount of changes per commit
+        </p>
       `;
 
       const gaugeMount = this.body.querySelector("#ghrm-gauge");

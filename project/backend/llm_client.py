@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 from typing import Dict, List
 
 import requests
@@ -25,6 +26,8 @@ class GitHubModelsClient:
 
         if not self.token:
             raise LLMClientError("Missing GITHUB_TOKEN (or GH_TOKEN) for GitHub Models API.")
+
+        self._file_history_prompt = None
 
     def summarize_chunk(self, commit_message: str, chunk_text: str, chunk_number: int, total_chunks: int) -> str:
         system_prompt = (
@@ -100,7 +103,7 @@ class GitHubModelsClient:
             logger.error("Unexpected GitHub Models response: %s", data)
             raise LLMClientError("Malformed response from GitHub Models API.") from exc
 
-        return str(content).strip()
+        return str(content).replace("```markdown", "").replace("```", "").strip()
 
     def _post_chat_with_token_limit(
         self,
@@ -129,17 +132,21 @@ class GitHubModelsClient:
             ]
         )
 
-        system_prompt = (
-            "You are an expert software engineer. Analyze the commit history of a file "
-            "and explain clearly what changed over time and why."
-        )
+        prompt = self._render_file_history_prompt(repo, path, commits_text)
+        return self._chat(prompt, "")
 
-        user_prompt = (
-            f"Here is the commit history for the file `{path}` in the repository `{repo}`.\n\n"
-            f"Commits:\n{commits_text}\n\n"
-            "For each commit, explain what likely changed in the file and why it was useful. "
-            "Then write a brief overall summary of the file's evolution. "
-            "Use markdown formatting."
-        )
+    def _load_file_history_prompt(self) -> str:
+        if self._file_history_prompt is not None:
+            return self._file_history_prompt
 
-        return self._chat(system_prompt, user_prompt)
+        prompt_path = Path(__file__).resolve().parent / "file_history_prompt.txt"
+        self._file_history_prompt = prompt_path.read_text(encoding="utf-8")
+        return self._file_history_prompt
+
+    def _render_file_history_prompt(self, repo: str, path: str, commits_text: str) -> str:
+        template = self._load_file_history_prompt()
+        return (
+            template.replace("{repo}", repo)
+            .replace("{path}", path)
+            .replace("{commits}", commits_text)
+        )

@@ -113,6 +113,14 @@
   padding-bottom: 6px;
 }
 
+#ghrm-modal-root .ghrm-note {
+  margin: 6px 0 2px;
+  color: #a9b8cf;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+}
+
 #ghrm-modal-root .ghrm-gauge-svg {
   width: min(98%, 430px);
   height: auto;

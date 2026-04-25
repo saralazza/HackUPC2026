@@ -2,18 +2,47 @@
   const API_BASE_URL = "http://127.0.0.1:5000";
   const commitPathRegex = /^\/([^/]+)\/([^/]+)\/commit\/([0-9a-fA-F]{7,40})(?:\/.*)?$/;
   const fileBlobRegex = /^\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/;
+  const repoRootRegex = /^\/([^/]+)\/([^/]+)\/?$/;
   const NAV_EVENT = "ghcs:navigation";
   const TOGGLE_BUTTON_ID = "ghcs-toggle-button";
+  const GUIDE_ROOT_ID = "ghcs-guide-root";
 
   let activeKey = null;
 
+  function getPageType(pathname) {
+    if (commitPathRegex.test(pathname)) {
+      return "commit";
+    }
+    if (fileBlobRegex.test(pathname)) {
+      return "blob";
+    }
+    if (repoRootRegex.test(pathname)) {
+      return "repo";
+    }
+    return "none";
+  }
+
   function shouldShowToggle(pathname) {
-    return commitPathRegex.test(pathname) || fileBlobRegex.test(pathname);
+    return getPageType(pathname) !== "none";
   }
 
   function isSidebarOpen() {
     const sidebar = window.GitCommitSummarySidebar;
     return Boolean(sidebar && sidebar.isOpen());
+  }
+
+  function isGuideOpen() {
+    const guide = document.getElementById(GUIDE_ROOT_ID);
+    return Boolean(guide && guide.classList.contains("ghcs-guide-open"));
+  }
+
+  function setButtonActive(active) {
+    const button = document.getElementById(TOGGLE_BUTTON_ID);
+    if (!button) {
+      return;
+    }
+    button.classList.toggle("ghcs-toggle-active", active);
+    button.setAttribute("aria-pressed", String(active));
   }
 
   function setSidebarOpen(nextOpen) {
@@ -32,10 +61,177 @@
       activeKey = null;
     }
 
-    const button = document.getElementById(TOGGLE_BUTTON_ID);
-    if (button) {
-      button.classList.toggle("ghcs-toggle-active", nextOpen);
-      button.setAttribute("aria-pressed", String(nextOpen));
+    setButtonActive(nextOpen || isGuideOpen());
+  }
+
+  function ensureGuideModal() {
+    if (document.getElementById(GUIDE_ROOT_ID)) {
+      return;
+    }
+
+    const root = document.createElement("div");
+    root.id = GUIDE_ROOT_ID;
+    root.innerHTML = `
+      <div class="ghcs-guide-overlay"></div>
+      <section class="ghcs-guide-panel" role="dialog" aria-modal="true" aria-label="Extension Guide">
+        <header class="ghcs-guide-header">
+          <div>
+            <h3 class="ghcs-guide-title">Extension Guide</h3>
+            <p class="ghcs-guide-subtitle">Quick overview of what you can do here.</p>
+          </div>
+          <button class="ghcs-guide-close" type="button" aria-label="Close guide">×</button>
+        </header>
+        <div class="ghcs-guide-body">
+          <div class="ghcs-guide-section">
+            <h4>Available features</h4>
+            <ul>
+              <li>Commit summarization sidebar on commit pages.</li>
+              <li>File modification history summaries on file pages.</li>
+              <li>Repository function dependency graph on repo home.</li>
+              <li>Risk dashboard for functions when selecting a node.</li>
+            </ul>
+          </div>
+          <div class="ghcs-guide-section" id="ghcs-token-section"></div>
+        </div>
+      </section>
+    `;
+
+    document.body.appendChild(root);
+
+    const overlay = root.querySelector(".ghcs-guide-overlay");
+    const closeButton = root.querySelector(".ghcs-guide-close");
+
+    overlay?.addEventListener("click", () => closeGuide());
+    closeButton?.addEventListener("click", () => closeGuide());
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isGuideOpen()) {
+        closeGuide();
+      }
+    });
+  }
+
+  function openGuide() {
+    ensureGuideModal();
+    const root = document.getElementById(GUIDE_ROOT_ID);
+    if (!root) {
+      return;
+    }
+    root.classList.add("ghcs-guide-open");
+    setButtonActive(true);
+    updateGuideTokenSection();
+  }
+
+  function closeGuide() {
+    const root = document.getElementById(GUIDE_ROOT_ID);
+    if (!root) {
+      return;
+    }
+    root.classList.remove("ghcs-guide-open");
+    setButtonActive(isSidebarOpen());
+  }
+
+  async function fetchTokenStatus() {
+    const response = await fetch(`${API_BASE_URL}/settings/token`, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
+    if (!response.ok) {
+      throw new Error("Unable to check token status.");
+    }
+    return response.json();
+  }
+
+  async function saveToken(token) {
+    const response = await fetch(`${API_BASE_URL}/settings/token`, {
+      method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ token })
+    });
+    if (!response.ok) {
+      let message = "Unable to save token.";
+      try {
+        const payload = await response.json();
+        if (payload.error) {
+          message = payload.error;
+        }
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
+    }
+    return response.json();
+  }
+
+  async function updateGuideTokenSection() {
+    const section = document.getElementById("ghcs-token-section");
+    if (!section) {
+      return;
+    }
+
+    section.innerHTML = "<p class=\"ghcs-guide-muted\">Checking GitHub token status...</p>";
+
+    let configured = false;
+    try {
+      const status = await fetchTokenStatus();
+      if (status && typeof status.stored === "boolean") {
+        configured = status.stored;
+      } else {
+        configured = Boolean(status && status.configured);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to check token status.";
+      section.innerHTML = `<p class=\"ghcs-guide-error\">${message}</p>`;
+      return;
+    }
+
+    if (configured) {
+      section.innerHTML = `
+        <h4>GitHub token</h4>
+        <p class="ghcs-guide-muted">Token is configured. <3</p>
+      `;
+      return;
+    }
+
+    section.innerHTML = `
+      <h4>GitHub token required</h4>
+      <p class="ghcs-guide-muted">Add a personal access token to unlock private repositories and API features.</p>
+      <div class="ghcs-token-form">
+        <input id="ghcs-token-input" type="password" />
+        <button id="ghcs-token-save" type="button">Save token</button>
+      </div>
+      <p id="ghcs-token-feedback" class="ghcs-guide-muted"></p>
+    `;
+
+    const input = document.getElementById("ghcs-token-input");
+    const button = document.getElementById("ghcs-token-save");
+    const feedback = document.getElementById("ghcs-token-feedback");
+
+    if (button && input) {
+      button.addEventListener("click", async () => {
+        const value = String(input.value || "").trim();
+        if (!value) {
+          if (feedback) {
+            feedback.textContent = "Please enter a token.";
+          }
+          return;
+        }
+        if (feedback) {
+          feedback.textContent = "Saving token...";
+        }
+        try {
+          await saveToken(value);
+          if (feedback) {
+            feedback.textContent = "Token saved successfully.";
+          }
+          updateGuideTokenSection();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unable to save token.";
+          if (feedback) {
+            feedback.textContent = message;
+          }
+        }
+      });
     }
   }
 
@@ -59,6 +255,16 @@
     button.appendChild(icon);
 
     button.addEventListener("click", () => {
+      const pageType = getPageType(window.location.pathname);
+      if (pageType === "repo") {
+        if (isGuideOpen()) {
+          closeGuide();
+        } else {
+          openGuide();
+        }
+        return;
+      }
+
       setSidebarOpen(!isSidebarOpen());
     });
 
@@ -71,10 +277,25 @@
       return;
     }
 
-    const shouldShow = shouldShowToggle(window.location.pathname);
+    const pageType = getPageType(window.location.pathname);
+    const shouldShow = pageType !== "none";
     button.style.display = shouldShow ? "grid" : "none";
-    if (!shouldShow && isSidebarOpen()) {
+
+    if (!shouldShow) {
+      if (isSidebarOpen()) {
+        setSidebarOpen(false);
+      }
+      if (isGuideOpen()) {
+        closeGuide();
+      }
+      return;
+    }
+
+    if (pageType === "repo" && isSidebarOpen()) {
       setSidebarOpen(false);
+    }
+    if (pageType !== "repo" && isGuideOpen()) {
+      closeGuide();
     }
   }
 

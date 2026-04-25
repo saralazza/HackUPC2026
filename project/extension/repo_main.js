@@ -38,4 +38,10 @@
   if (window.GitHubRepoGraph) {
     window.GitHubRepoGraph.runForCurrentPage();
   }
+
+  window.setTimeout(() => {
+    if (window.GitHubRepoGraph) {
+      window.GitHubRepoGraph.runForCurrentPage();
+    }
+  }, 1200);
 })();

@@ -153,6 +153,145 @@
   font-weight: 600;
 }
 
+#ghcs-guide-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  font-family: var(--ghcs-font);
+}
+
+#ghcs-guide-root.ghcs-guide-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#ghcs-guide-root .ghcs-guide-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 10, 18, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+#ghcs-guide-root .ghcs-guide-panel {
+  position: absolute;
+  top: 50%;
+  right: 8%;
+  transform: translateY(-50%);
+  width: min(520px, 92vw);
+  background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.14), transparent 45%),
+    linear-gradient(180deg, var(--ghcs-bg), var(--ghcs-panel));
+  border: 1px solid var(--ghcs-border);
+  border-radius: 16px;
+  box-shadow: var(--ghcs-shadow);
+  color: var(--ghcs-text);
+  overflow: hidden;
+}
+
+#ghcs-guide-root .ghcs-guide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(10, 17, 31, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+#ghcs-guide-root .ghcs-guide-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+#ghcs-guide-root .ghcs-guide-subtitle {
+  margin: 6px 0 0;
+  color: var(--ghcs-muted);
+  font-size: 12px;
+}
+
+#ghcs-guide-root .ghcs-guide-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ghcs-text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+#ghcs-guide-root .ghcs-guide-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+#ghcs-guide-root .ghcs-guide-body {
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 16px;
+}
+
+#ghcs-guide-root .ghcs-guide-section h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+#ghcs-guide-root .ghcs-guide-section ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ghcs-muted);
+  font-size: 13px;
+  display: grid;
+  gap: 6px;
+}
+
+#ghcs-guide-root .ghcs-guide-muted {
+  margin: 0;
+  color: var(--ghcs-muted);
+  font-size: 12px;
+}
+
+#ghcs-guide-root .ghcs-guide-error {
+  margin: 0;
+  color: var(--ghcs-error);
+  font-size: 12px;
+}
+
+#ghcs-guide-root .ghcs-token-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+#ghcs-guide-root .ghcs-token-form input {
+  flex: 1;
+  min-width: 220px;
+  border-radius: 10px;
+  border: 1px solid var(--ghcs-border);
+  background: rgba(8, 13, 24, 0.8);
+  color: var(--ghcs-text);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+#ghcs-guide-root .ghcs-token-form button {
+  border-radius: 10px;
+  border: 1px solid rgba(168, 85, 247, 0.55);
+  background: linear-gradient(160deg, rgba(59, 7, 100, 0.9), rgba(147, 51, 234, 0.6));
+  color: var(--ghcs-text);
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#ghcs-guide-root .ghcs-token-form button:hover {
+  border-color: rgba(216, 180, 254, 0.75);
+}
+
 @keyframes ghcs-spin {
   to {
     transform: rotate(360deg);
@@ -190,5 +329,9 @@
   #ghcs-toggle-button {
     top: 20px;
     right: 12px;
+  }
+
+  #ghcs-guide-root .ghcs-guide-panel {
+    right: 4%;
   }
 }

@@ -72,8 +72,20 @@
       }
 
       const repoKey = context.repo;
-      const sectionMounted = Boolean(document.getElementById(GRAPH_SECTION_ID));
-      if (this.currentRepoKey === repoKey && sectionMounted) {
+      const section = document.getElementById(GRAPH_SECTION_ID);
+      const sectionMounted = Boolean(section);
+      const sectionAttached = Boolean(section && section.isConnected);
+      const canvasMounted = Boolean(section && section.querySelector(`#${GRAPH_CANVAS_ID}`));
+      const sectionVisible = Boolean(
+        section && !section.hidden && section.style.display !== "none"
+      );
+      if (
+        this.currentRepoKey === repoKey &&
+        sectionMounted &&
+        sectionAttached &&
+        canvasMounted &&
+        sectionVisible
+      ) {
         return;
       }
 
@@ -629,7 +641,7 @@
         this.destroyTooltip();
       });
 
-      this.cy.on("tap", "node", async (event) => {
+      const handleNodeSelect = async (event) => {
         const node = event.target;
         const functionId = node.data("fullId") || node.id();
         if (!functionId || !this.currentRepo) {
@@ -651,7 +663,10 @@
           const message = error instanceof Error ? error.message : "Risk metrics unavailable.";
           modal.renderError(message);
         }
-      });
+      };
+
+      this.cy.on("tap", "node", handleNodeSelect);
+      this.cy.on("click", "node", handleNodeSelect);
     }
 
     computeInDegree(nodes, edges) {

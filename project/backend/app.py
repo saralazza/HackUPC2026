@@ -2,9 +2,11 @@ import logging
 import os
 import re
 from pathlib import Path
+from typing import Dict
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from dotenv import load_dotenv
 
 from cache import SummaryCache
 from graph.analyzer import GraphAnalyzerError, RepositoryGraphAnalyzer
@@ -14,7 +16,33 @@ from risk.risk_analyzer import FunctionRiskAnalyzer, RiskAnalyzerError
 from summarizer import CommitSummarizer
 
 
+def _read_env_file(path: Path) -> Dict[str, str]:
+    if not path.exists():
+        return {}
+    entries: Dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line or line.lstrip().startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        entries[key.strip()] = value.strip()
+    return entries
+
+
+def _write_env_value(path: Path, key: str, value: str) -> None:
+    entries = _read_env_file(path)
+    entries[key] = value
+
+    lines = ["# Local secrets (do not commit)"]
+    for entry_key in sorted(entries.keys()):
+        lines.append(f"{entry_key}={entries[entry_key]}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def create_app() -> Flask:
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    load_dotenv(env_path)
     app = Flask(__name__)
     CORS(
         app,
@@ -23,6 +51,7 @@ def create_app() -> Flask:
             r"/graph": {"origins": ["https://github.com"]},
             r"/file-history": {"origins": ["https://github.com"]},
             r"/function-risk": {"origins": ["https://github.com"]},
+            r"/settings/token": {"origins": ["https://github.com"]},
         },
     )
 
@@ -49,6 +78,32 @@ def create_app() -> Flask:
 
     @app.get("/health")
     def healthcheck():
+        return jsonify({"status": "ok"})
+
+    @app.get("/settings/token")
+    def get_token_status():
+        stored_token = _read_env_file(env_path).get("GITHUB_TOKEN", "").strip()
+        runtime_token = os.getenv("GITHUB_TOKEN", "").strip()
+        return jsonify(
+            {
+                "configured": bool(stored_token or runtime_token),
+                "stored": bool(stored_token),
+            }
+        )
+
+    @app.post("/settings/token")
+    def set_token():
+        payload = request.get_json(silent=True) or {}
+        token = str(payload.get("token", "")).strip()
+        if not token:
+            return jsonify({"error": "Missing token."}), 400
+
+        _write_env_value(env_path, "GITHUB_TOKEN", token)
+        os.environ["GITHUB_TOKEN"] = token
+        github_client.token = token
+        graph_analyzer.token = token
+
+        logger.info("GitHub token updated via settings endpoint")
         return jsonify({"status": "ok"})
 
     @app.get("/summarize")

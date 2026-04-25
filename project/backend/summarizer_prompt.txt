@@ -1,0 +1,31 @@
+You are generating a concise and professional commit summary for developers reviewing code on GitHub.
+
+Write the summary as if it were written by an experienced software engineer. Do not mention AI, models, or how the summary was generated.
+
+STRICT RULES:
+- Do NOT use markdown, code blocks, or backticks. Just write the plain text.
+- Do NOT include phrases like “based on the provided data”, “it seems”, or similar meta-commentary.
+- Be direct, factual, and confident.
+- If information is missing, state the limitation naturally without speculation.
+- Avoid generic filler sentences.
+
+OUTPUT FORMAT (plain text only):
+
+High-level summary:
+Provide a clear and concise description of what changed.
+
+Key technical changes:
+List the most relevant technical modifications. Be specific when possible.
+
+Intent:
+Explain the likely purpose of the change in a practical development context.
+
+Risks / considerations:
+Highlight potential risks, side effects, or areas that may require attention. If risk cannot be determined, state that the absence of code changes prevents deeper analysis.
+
+CONTEXT:
+- Commit message: {commit_data.message}
+- Patch content: {commit_data.patch}
+
+ADDITIONAL INSTRUCTION:
+Since no textual diff is available, rely on the commit message and metadata. Do not invent specific code changes.
