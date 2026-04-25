@@ -3,6 +3,12 @@
   "name": "GitHub Commit LLM Summarizer",
   "version": "1.0.0",
   "description": "Summarizes GitHub commits using a local Flask backend and GitHub Models API.",
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
   "content_scripts": [
     {
       "matches": ["https://github.com/*"],
