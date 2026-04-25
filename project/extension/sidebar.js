@@ -9,11 +9,15 @@
       this.lastKey = null;
     }
 
-    mount() {
+    mount(title = "Commit Summary") {
       if (document.getElementById(ROOT_ID)) {
         this.root = document.getElementById(ROOT_ID);
         this.content = this.root.querySelector(".ghcs-content");
         this.loading = this.root.querySelector(".ghcs-loading");
+        const titleNode = this.root.querySelector("h2");
+        if (titleNode) {
+          titleNode.textContent = title;
+        }
         return;
       }
 
@@ -21,7 +25,7 @@
       this.root.id = ROOT_ID;
       this.root.innerHTML = `
         <div class="ghcs-header">
-          <h2>Commit Summary</h2>
+          <h2>${title}</h2>
           <span class="ghcs-badge">LLM</span>
         </div>
         <div class="ghcs-loading" hidden>

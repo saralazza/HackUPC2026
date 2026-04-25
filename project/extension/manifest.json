@@ -5,7 +5,7 @@
   "description": "Summarizes GitHub commits using a local Flask backend and GitHub Models API.",
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/*/commit/*"],
+      "matches": ["https://github.com/*"],
       "js": ["sidebar.js", "content.js"],
       "css": ["sidebar.css"],
       "run_at": "document_idle"

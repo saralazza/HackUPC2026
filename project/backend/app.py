@@ -20,6 +20,7 @@ def create_app() -> Flask:
         resources={
             r"/summarize": {"origins": ["https://github.com"]},
             r"/graph": {"origins": ["https://github.com"]},
+            r"/file-history": {"origins": ["https://github.com"]},
         },
     )
 
@@ -112,6 +113,49 @@ def create_app() -> Flask:
             return jsonify({"error": f"Graph generation failed: {exc}"}), 502
         except Exception as exc:
             logger.exception("Unexpected graph error for %s", repo)
+            return jsonify({"error": f"Unexpected server error: {exc}"}), 500
+
+    @app.get("/file-history")
+    def get_file_history():
+        repo = (request.args.get("repo") or "").strip()
+        path = (request.args.get("path") or "").strip().lstrip("/")
+
+        if not repo_pattern.match(repo):
+            return jsonify({"error": "Invalid repo format. Use owner/repository."}), 400
+
+        if not path:
+            return jsonify({"error": "Missing file path."}), 400
+
+        if llm_client is None:
+            return jsonify({"error": "LLM client is not configured. Set GITHUB_TOKEN."}), 500
+
+        try:
+            history_data = github_client.fetch_file_history(repo, path)
+
+            if not history_data:
+                return jsonify(
+                    {
+                        "summary": "## File Evolution\n\nNessun commit trovato per questo file.",
+                        "commit_count": 0,
+                    }
+                )
+
+            summary = llm_client.summarize_file_history(repo, path, history_data[:10])
+
+            return jsonify(
+                {
+                    "summary": summary,
+                    "commit_count": len(history_data),
+                }
+            )
+        except GitHubClientError as exc:
+            logger.exception("GitHub file history retrieval error for %s | %s", repo, path)
+            return jsonify({"error": f"GitHub retrieval failed: {exc}"}), 502
+        except LLMClientError as exc:
+            logger.exception("LLM file history summarization error for %s | %s", repo, path)
+            return jsonify({"error": f"LLM summarization failed: {exc}"}), 502
+        except Exception as exc:
+            logger.exception("Unexpected file history error for %s | %s", repo, path)
             return jsonify({"error": f"Unexpected server error: {exc}"}), 500
 
     return app

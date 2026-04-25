@@ -183,3 +183,21 @@ class GitHubClient:
         if len(parts) >= 2:
             return parts[1]
         return "unknown"
+
+    def fetch_file_history(self, repo: str, path: str) -> List[Dict[str, Any]]:
+        url = f"https://api.github.com/repos/{repo}/commits"
+        params = {"path": path}
+        response = requests.get(
+            url,
+            params=params,
+            headers=self._api_headers(),
+            timeout=self.timeout_seconds,
+        )
+
+        if response.status_code >= 400:
+            raise GitHubClientError(f"GitHub API error {response.status_code}: {response.text[:300]}")
+
+        payload = response.json()
+        if not isinstance(payload, list):
+            raise GitHubClientError("Unexpected response shape for file history.")
+        return payload

@@ -117,3 +117,29 @@ class GitHubModelsClient:
             json=payload,
             timeout=self.timeout_seconds,
         )
+
+    def summarize_file_history(self, repo: str, path: str, commits: List[Dict[str, object]]) -> str:
+        commits_text = "\n".join(
+            [
+                "- "
+                + str((c.get("commit") or {}).get("author", {}).get("date", ""))[:10]
+                + ": "
+                + str((c.get("commit") or {}).get("message", "")).split("\n")[0]
+                for c in commits
+            ]
+        )
+
+        system_prompt = (
+            "You are an expert software engineer. Analyze the commit history of a file "
+            "and explain clearly what changed over time and why."
+        )
+
+        user_prompt = (
+            f"Here is the commit history for the file `{path}` in the repository `{repo}`.\n\n"
+            f"Commits:\n{commits_text}\n\n"
+            "For each commit, explain what likely changed in the file and why it was useful. "
+            "Then write a brief overall summary of the file's evolution. "
+            "Use markdown formatting."
+        )
+
+        return self._chat(system_prompt, user_prompt)
