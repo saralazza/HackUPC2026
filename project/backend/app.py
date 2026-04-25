@@ -10,6 +10,7 @@ from cache import SummaryCache
 from graph.analyzer import GraphAnalyzerError, RepositoryGraphAnalyzer
 from github_client import GitHubClient, GitHubClientError
 from llm_client import GitHubModelsClient, LLMClientError
+from risk.risk_analyzer import FunctionRiskAnalyzer, RiskAnalyzerError
 from summarizer import CommitSummarizer
 
 
@@ -21,6 +22,7 @@ def create_app() -> Flask:
             r"/summarize": {"origins": ["https://github.com"]},
             r"/graph": {"origins": ["https://github.com"]},
             r"/file-history": {"origins": ["https://github.com"]},
+            r"/function-risk": {"origins": ["https://github.com"]},
         },
     )
 
@@ -34,6 +36,7 @@ def create_app() -> Flask:
     cache = SummaryCache(str(cache_path))
     github_client = GitHubClient(token=os.getenv("GITHUB_TOKEN"))
     graph_analyzer = RepositoryGraphAnalyzer(token=os.getenv("GITHUB_TOKEN"))
+    risk_analyzer = FunctionRiskAnalyzer(github_client=github_client, graph_analyzer=graph_analyzer)
 
     try:
         llm_client = GitHubModelsClient()
@@ -156,6 +159,33 @@ def create_app() -> Flask:
             return jsonify({"error": f"LLM summarization failed: {exc}"}), 502
         except Exception as exc:
             logger.exception("Unexpected file history error for %s | %s", repo, path)
+            return jsonify({"error": f"Unexpected server error: {exc}"}), 500
+
+    @app.get("/function-risk")
+    def get_function_risk():
+        repo = (request.args.get("repo") or "").strip()
+        function_id = (request.args.get("function_id") or "").strip()
+
+        if not repo_pattern.match(repo):
+            return jsonify({"error": "Invalid repo format. Use owner/repository."}), 400
+
+        if not function_id or ":" not in function_id:
+            return jsonify({"error": "Invalid function_id format. Use file.py:function_name"}), 400
+
+        try:
+            payload = risk_analyzer.analyze(repo=repo, function_id=function_id)
+            return jsonify(payload)
+        except RiskAnalyzerError as exc:
+            logger.exception("Risk analyzer input error for %s | %s", repo, function_id)
+            return jsonify({"error": str(exc)}), 400
+        except GitHubClientError as exc:
+            logger.exception("GitHub risk retrieval error for %s | %s", repo, function_id)
+            return jsonify({"error": f"GitHub retrieval failed: {exc}"}), 502
+        except GraphAnalyzerError as exc:
+            logger.exception("Graph risk retrieval error for %s | %s", repo, function_id)
+            return jsonify({"error": f"Graph generation failed: {exc}"}), 502
+        except Exception as exc:
+            logger.exception("Unexpected function risk error for %s | %s", repo, function_id)
             return jsonify({"error": f"Unexpected server error: {exc}"}), 500
 
     return app

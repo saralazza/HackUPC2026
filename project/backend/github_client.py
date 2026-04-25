@@ -1,3 +1,4 @@
+import datetime as dt
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -184,9 +185,18 @@ class GitHubClient:
             return parts[1]
         return "unknown"
 
-    def fetch_file_history(self, repo: str, path: str) -> List[Dict[str, Any]]:
+    def fetch_file_history(
+        self,
+        repo: str,
+        path: str,
+        *,
+        since: Optional[str] = None,
+        per_page: int = 100,
+    ) -> List[Dict[str, Any]]:
         url = f"https://api.github.com/repos/{repo}/commits"
-        params = {"path": path}
+        params: Dict[str, Any] = {"path": path, "per_page": max(1, min(per_page, 100))}
+        if since:
+            params["since"] = since
         response = requests.get(
             url,
             params=params,
@@ -201,3 +211,19 @@ class GitHubClient:
         if not isinstance(payload, list):
             raise GitHubClientError("Unexpected response shape for file history.")
         return payload
+
+    @staticmethod
+    def parse_commit_date(commit_payload: Dict[str, Any]) -> Optional[dt.datetime]:
+        date_text = (
+            commit_payload.get("commit", {})
+            .get("author", {})
+            .get("date")
+        )
+        if not date_text:
+            return None
+
+        try:
+            normalized = str(date_text).replace("Z", "+00:00")
+            return dt.datetime.fromisoformat(normalized)
+        except Exception:
+            return None
