@@ -81,16 +81,14 @@ class GitHubModelsClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "temperature": 0.2,
-            "max_tokens": 1200,
         }
 
-        response = requests.post(
-            self.endpoint,
-            headers=headers,
-            json=payload,
-            timeout=self.timeout_seconds,
-        )
+        # Newer reasoning-capable models (for example openai/o4-mini) require max_completion_tokens.
+        response = self._post_chat_with_token_limit(headers, payload, "max_completion_tokens")
+
+        if response.status_code == 400 and "max_completion_tokens" in response.text and "unsupported" in response.text.lower():
+            # Fallback for models that only accept the legacy max_tokens parameter.
+            response = self._post_chat_with_token_limit(headers, payload, "max_tokens")
 
         if response.status_code >= 400:
             raise LLMClientError(f"GitHub Models API error {response.status_code}: {response.text[:500]}")
@@ -103,3 +101,19 @@ class GitHubModelsClient:
             raise LLMClientError("Malformed response from GitHub Models API.") from exc
 
         return str(content).strip()
+
+    def _post_chat_with_token_limit(
+        self,
+        headers: Dict[str, str],
+        base_payload: Dict[str, object],
+        token_field: str,
+    ) -> requests.Response:
+        payload = dict(base_payload)
+        payload[token_field] = 1200
+
+        return requests.post(
+            self.endpoint,
+            headers=headers,
+            json=payload,
+            timeout=self.timeout_seconds,
+        )
