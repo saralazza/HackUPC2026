@@ -1,0 +1,162 @@
+#gh-repo-graph-section {
+  --ghrg-panel-bg: #ffffff;
+  --ghrg-panel-border: #d0d7de;
+  --ghrg-header-bg: #f6f8fa;
+  --ghrg-header-border: #d8dee4;
+  --ghrg-title: #24292f;
+  --ghrg-subtitle: #57606a;
+  --ghrg-status: #57606a;
+  --ghrg-canvas-bg: #f8fafc;
+  --ghrg-tooltip-bg: #0d1117;
+  --ghrg-tooltip-fg: #f0f6fc;
+  --ghrg-tooltip-border: #d0d7de;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 100%;
+  grid-column: 1 / 2;
+  justify-self: stretch;
+  border: 1px solid var(--ghrg-panel-border);
+  border-radius: 8px;
+  background: var(--ghrg-panel-bg);
+  overflow: hidden;
+}
+
+#gh-repo-graph-section[data-ghrg-theme="dark"] {
+  --ghrg-panel-bg: #0d1117;
+  --ghrg-panel-border: #30363d;
+  --ghrg-header-bg: #161b22;
+  --ghrg-header-border: #30363d;
+  --ghrg-title: #e6edf3;
+  --ghrg-subtitle: #9da7b3;
+  --ghrg-status: #9da7b3;
+  --ghrg-canvas-bg: #0b1320;
+  --ghrg-tooltip-bg: #161b22;
+  --ghrg-tooltip-fg: #e6edf3;
+  --ghrg-tooltip-border: #30363d;
+}
+
+#gh-repo-graph-section .ghrg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ghrg-header-border);
+  background: var(--ghrg-header-bg);
+}
+
+#gh-repo-graph-section .ghrg-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+#gh-repo-graph-section #ghrg-search-input {
+  width: 230px;
+  max-width: 42vw;
+  border: 1px solid var(--ghrg-panel-border);
+  border-radius: 6px;
+  background: var(--ghrg-panel-bg);
+  color: var(--ghrg-title);
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+#gh-repo-graph-section #ghrg-search-btn {
+  border: 1px solid var(--ghrg-panel-border);
+  border-radius: 6px;
+  background: var(--ghrg-header-bg);
+  color: var(--ghrg-title);
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+#gh-repo-graph-section #ghrg-search-feedback {
+  min-width: 120px;
+  color: var(--ghrg-subtitle);
+  font-size: 12px;
+}
+
+#gh-repo-graph-section .ghrg-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ghrg-title);
+}
+
+#gh-repo-graph-section .ghrg-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ghrg-subtitle);
+}
+
+#gh-repo-graph-section .ghrg-body {
+  position: relative;
+  height: 560px;
+  min-height: 360px;
+}
+
+#gh-repo-graph-canvas {
+  width: 100%;
+  height: 100%;
+  background: var(--ghrg-canvas-bg);
+}
+
+#gh-repo-graph-section .ghrg-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ghrg-status);
+  font-size: 13px;
+}
+
+#gh-repo-graph-tooltip {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 100000;
+  max-width: 360px;
+  border-radius: 8px;
+  border: 1px solid var(--ghrg-tooltip-border);
+  background: var(--ghrg-tooltip-bg);
+  color: var(--ghrg-tooltip-fg);
+  box-shadow: 0 8px 24px rgba(1, 4, 9, 0.25);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+#gh-repo-graph-tooltip .ghrg-tooltip-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+#gh-repo-graph-tooltip .ghrg-tooltip-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+#gh-repo-graph-tooltip .ghrg-tooltip-list li {
+  margin: 2px 0;
+}
+
+@media (max-width: 900px) {
+  #gh-repo-graph-section .ghrg-body {
+    height: 420px;
+  }
+
+  #gh-repo-graph-section .ghrg-search-wrap {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  #gh-repo-graph-section #ghrg-search-input {
+    flex: 1;
+    max-width: none;
+  }
+}

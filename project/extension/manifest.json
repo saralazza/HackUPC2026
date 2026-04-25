@@ -9,6 +9,12 @@
       "js": ["sidebar.js", "content.js"],
       "css": ["sidebar.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://github.com/*/*", "https://github.com/*/*/"],
+      "js": ["graph/cytoscape.min.js", "graph/graph.js", "repo_main.js"],
+      "css": ["graph/graph.css"],
+      "run_at": "document_idle"
     }
   ],
   "host_permissions": [
