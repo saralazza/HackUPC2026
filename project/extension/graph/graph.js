@@ -7,6 +7,7 @@
   class RepositoryGraphFeature {
     constructor() {
       this.currentRepoKey = null;
+      this.currentRepo = null;
       this.container = null;
       this.cy = null;
       this.tooltip = null;
@@ -79,6 +80,7 @@
         this.anchorRetryCount = 0;
       }
       this.currentRepoKey = repoKey;
+      this.currentRepo = context.repo;
 
       const readmeAnchor = this.findReadmeAnchor();
       if (!readmeAnchor) {
@@ -317,6 +319,29 @@
       return response.json();
     }
 
+    async fetchFunctionRisk(repo, functionId) {
+      const url = `${API_BASE_URL}/function-risk?repo=${encodeURIComponent(repo)}&function_id=${encodeURIComponent(functionId)}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Accept": "application/json" }
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Risk request failed with status ${response.status}`;
+        try {
+          const payload = await response.json();
+          if (payload.error) {
+            errorMessage = payload.error;
+          }
+        } catch {
+          // ignore JSON parse issues
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json();
+    }
+
     renderGraph(payload) {
       if (!this.container) {
         return;
@@ -479,6 +504,30 @@
       this.cy.on("mouseout", "node", () => {
         this.cy.elements().removeClass("dim").removeClass("highlight");
         this.destroyTooltip();
+      });
+
+      this.cy.on("tap", "node", async (event) => {
+        const node = event.target;
+        const functionId = node.data("fullId") || node.id();
+        if (!functionId || !this.currentRepo) {
+          return;
+        }
+
+        const modal = window.GitFunctionRiskModal;
+        if (!modal) {
+          return;
+        }
+
+        modal.open(functionId);
+        modal.renderLoading();
+
+        try {
+          const payload = await this.fetchFunctionRisk(this.currentRepo, functionId);
+          modal.renderDashboard(payload);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Risk metrics unavailable.";
+          modal.renderError(message);
+        }
       });
     }
 

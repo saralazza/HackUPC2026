@@ -18,8 +18,8 @@
     },
     {
       "matches": ["https://github.com/*/*", "https://github.com/*/*/"],
-      "js": ["graph/cytoscape.min.js", "graph/graph.js", "repo_main.js"],
-      "css": ["graph/graph.css"],
+      "js": ["graph/cytoscape.min.js", "risk/gauge.js", "risk/risk_modal.js", "graph/graph.js", "repo_main.js"],
+      "css": ["graph/graph.css", "risk/risk_modal.css"],
       "run_at": "document_idle"
     }
   ],
