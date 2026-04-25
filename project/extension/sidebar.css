@@ -1,29 +1,80 @@
 :root {
-  --ghcs-bg: #0f172a;
+  --ghcs-bg: #0b1220;
   --ghcs-panel: #111827;
-  --ghcs-border: #334155;
-  --ghcs-text: #e5e7eb;
-  --ghcs-muted: #94a3b8;
+  --ghcs-border: #263246;
+  --ghcs-text: #ecf1f8;
+  --ghcs-muted: #9aa7bb;
   --ghcs-accent: #22c55e;
   --ghcs-error: #f87171;
+  --ghcs-glow: rgba(56, 189, 248, 0.24);
+  --ghcs-shadow: 0 18px 36px rgba(5, 8, 16, 0.55);
+  --ghcs-font: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+#ghcs-toggle-button {
+  position: fixed;
+  top: 50px;
+  right: 16px;
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  border: 1px solid rgba(168, 85, 247, 0.55);
+  background: linear-gradient(150deg, rgba(59, 7, 100, 0.92), rgba(147, 51, 234, 0.55));
+  box-shadow: 0 14px 28px rgba(88, 28, 135, 0.45);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 100000;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  animation: ghcs-pop 420ms ease;
+}
+
+#ghcs-toggle-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 16px 32px rgba(88, 28, 135, 0.55);
+  border-color: rgba(216, 180, 254, 0.75);
+}
+
+#ghcs-toggle-button.ghcs-toggle-active {
+  border-color: rgba(216, 180, 254, 0.85);
+  box-shadow: 0 14px 28px rgba(192, 132, 252, 0.45);
+}
+
+#ghcs-toggle-button .ghcs-toggle-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.65));
 }
 
 #gh-commit-summary-root {
+  font-family: var(--ghcs-font);
   position: fixed;
   top: 68px;
   right: 12px;
   width: min(420px, 35vw);
   max-width: 420px;
   height: calc(100vh - 84px);
-  background: linear-gradient(180deg, var(--ghcs-bg), var(--ghcs-panel));
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 45%),
+    linear-gradient(180deg, var(--ghcs-bg), var(--ghcs-panel));
   color: var(--ghcs-text);
   border: 1px solid var(--ghcs-border);
   border-radius: 12px;
-  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.45);
+  box-shadow: var(--ghcs-shadow);
   z-index: 99999;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform: translateX(120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 280ms ease, opacity 220ms ease;
+}
+
+#gh-commit-summary-root.ghcs-open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 #gh-commit-summary-root .ghcs-header {
@@ -32,7 +83,8 @@
   justify-content: space-between;
   padding: 14px 16px;
   border-bottom: 1px solid var(--ghcs-border);
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(10, 17, 31, 0.92);
+  backdrop-filter: blur(10px);
 }
 
 #gh-commit-summary-root .ghcs-header h2 {
@@ -44,7 +96,7 @@
 
 #gh-commit-summary-root .ghcs-badge {
   font-size: 12px;
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(34, 197, 94, 0.18);
   color: var(--ghcs-accent);
   padding: 3px 8px;
   border-radius: 999px;
@@ -107,6 +159,17 @@
   }
 }
 
+@keyframes ghcs-pop {
+  0% {
+    transform: translateY(-6px) scale(0.92);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
 @media (max-width: 1100px) {
   #gh-commit-summary-root {
     width: min(360px, 46vw);
@@ -122,5 +185,10 @@
     height: 40vh;
     top: auto;
     bottom: 8px;
+  }
+
+  #ghcs-toggle-button {
+    top: 20px;
+    right: 12px;
   }
 }

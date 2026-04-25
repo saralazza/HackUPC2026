@@ -23,10 +23,11 @@
 
       this.root = document.createElement("aside");
       this.root.id = ROOT_ID;
+      this.root.classList.add("ghcs-panel");
+      this.root.setAttribute("aria-hidden", "true");
       this.root.innerHTML = `
         <div class="ghcs-header">
           <h2>${title}</h2>
-          <span class="ghcs-badge">LLM</span>
         </div>
         <div class="ghcs-loading" hidden>
           <div class="ghcs-spinner" aria-hidden="true"></div>
@@ -38,6 +39,26 @@
       document.body.appendChild(this.root);
       this.content = this.root.querySelector(".ghcs-content");
       this.loading = this.root.querySelector(".ghcs-loading");
+    }
+
+    open() {
+      if (!this.root) {
+        this.mount();
+      }
+      this.root.classList.add("ghcs-open");
+      this.root.setAttribute("aria-hidden", "false");
+    }
+
+    close() {
+      if (!this.root) {
+        return;
+      }
+      this.root.classList.remove("ghcs-open");
+      this.root.setAttribute("aria-hidden", "true");
+    }
+
+    isOpen() {
+      return Boolean(this.root && this.root.classList.contains("ghcs-open"));
     }
 
     setLoading(isLoading) {

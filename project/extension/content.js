@@ -3,8 +3,80 @@
   const commitPathRegex = /^\/([^/]+)\/([^/]+)\/commit\/([0-9a-fA-F]{7,40})(?:\/.*)?$/;
   const fileBlobRegex = /^\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/;
   const NAV_EVENT = "ghcs:navigation";
+  const TOGGLE_BUTTON_ID = "ghcs-toggle-button";
 
   let activeKey = null;
+
+  function shouldShowToggle(pathname) {
+    return commitPathRegex.test(pathname) || fileBlobRegex.test(pathname);
+  }
+
+  function isSidebarOpen() {
+    const sidebar = window.GitCommitSummarySidebar;
+    return Boolean(sidebar && sidebar.isOpen());
+  }
+
+  function setSidebarOpen(nextOpen) {
+    const sidebar = window.GitCommitSummarySidebar;
+    if (!sidebar) {
+      return;
+    }
+
+    sidebar.mount();
+    if (nextOpen) {
+      sidebar.open();
+      triggerFlows();
+      scheduleNavigationRetries();
+    } else {
+      sidebar.close();
+      activeKey = null;
+    }
+
+    const button = document.getElementById(TOGGLE_BUTTON_ID);
+    if (button) {
+      button.classList.toggle("ghcs-toggle-active", nextOpen);
+      button.setAttribute("aria-pressed", String(nextOpen));
+    }
+  }
+
+  function ensureToggleButton() {
+    if (document.getElementById(TOGGLE_BUTTON_ID)) {
+      return;
+    }
+
+    const button = document.createElement("button");
+    button.id = TOGGLE_BUTTON_ID;
+    button.type = "button";
+    button.setAttribute("aria-label", "Toggle insights sidebar");
+    button.setAttribute("aria-pressed", "false");
+
+    const icon = document.createElement("img");
+    icon.className = "ghcs-toggle-icon";
+    if (window.chrome && window.chrome.runtime && window.chrome.runtime.getURL) {
+      icon.src = window.chrome.runtime.getURL("icon.png");
+    }
+    icon.alt = "";
+    button.appendChild(icon);
+
+    button.addEventListener("click", () => {
+      setSidebarOpen(!isSidebarOpen());
+    });
+
+    document.body.appendChild(button);
+  }
+
+  function updateToggleVisibility() {
+    const button = document.getElementById(TOGGLE_BUTTON_ID);
+    if (!button) {
+      return;
+    }
+
+    const shouldShow = shouldShowToggle(window.location.pathname);
+    button.style.display = shouldShow ? "grid" : "none";
+    if (!shouldShow && isSidebarOpen()) {
+      setSidebarOpen(false);
+    }
+  }
 
   function parseCommitContext(urlPathname) {
     const match = urlPathname.match(commitPathRegex);
@@ -65,6 +137,9 @@
   }
 
   async function runSummaryFlow() {
+    if (!isSidebarOpen()) {
+      return;
+    }
     const ctx = parseCommitContext(window.location.pathname);
     if (!ctx) {
       return;
@@ -104,6 +179,9 @@
   }
 
   async function runFileHistoryFlow() {
+    if (!isSidebarOpen()) {
+      return;
+    }
     const match = window.location.pathname.match(fileBlobRegex);
     if (!match) {
       return;
@@ -144,6 +222,9 @@
   }
 
   function triggerFlows() {
+    if (!isSidebarOpen()) {
+      return;
+    }
     runSummaryFlow();
     runFileHistoryFlow();
   }
@@ -196,7 +277,12 @@
       true
     );
 
-    window.addEventListener(NAV_EVENT, triggerFlows);
+    window.addEventListener(NAV_EVENT, () => {
+      updateToggleVisibility();
+      if (isSidebarOpen()) {
+        triggerFlows();
+      }
+    });
 
     // GitHub's dynamic page transitions can skip history events, so observe URL changes.
     let lastHref = window.location.href;
@@ -210,6 +296,7 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  ensureToggleButton();
+  updateToggleVisibility();
   installNavigationHooks();
-  triggerFlows();
 })();
