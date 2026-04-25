@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from cache import SummaryCache
+from graph.analyzer import GraphAnalyzerError, RepositoryGraphAnalyzer
 from github_client import GitHubClient, GitHubClientError
 from llm_client import GitHubModelsClient, LLMClientError
 from summarizer import CommitSummarizer
@@ -14,7 +15,13 @@ from summarizer import CommitSummarizer
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    CORS(app, resources={r"/summarize": {"origins": ["https://github.com"]}})
+    CORS(
+        app,
+        resources={
+            r"/summarize": {"origins": ["https://github.com"]},
+            r"/graph": {"origins": ["https://github.com"]},
+        },
+    )
 
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO"),
@@ -25,6 +32,7 @@ def create_app() -> Flask:
     cache_path = Path(__file__).resolve().parent / "cache.db"
     cache = SummaryCache(str(cache_path))
     github_client = GitHubClient(token=os.getenv("GITHUB_TOKEN"))
+    graph_analyzer = RepositoryGraphAnalyzer(token=os.getenv("GITHUB_TOKEN"))
 
     try:
         llm_client = GitHubModelsClient()
@@ -87,6 +95,23 @@ def create_app() -> Flask:
             return jsonify({"error": f"LLM summarization failed: {exc}"}), 502
         except Exception as exc:
             logger.exception("Unexpected error for %s@%s", repo, sha)
+            return jsonify({"error": f"Unexpected server error: {exc}"}), 500
+
+    @app.get("/graph")
+    def build_repository_graph():
+        repo = (request.args.get("repo") or "").strip()
+
+        if not repo_pattern.match(repo):
+            return jsonify({"error": "Invalid repo format. Use owner/repository."}), 400
+
+        try:
+            graph_payload = graph_analyzer.build_graph(repo)
+            return jsonify(graph_payload)
+        except GraphAnalyzerError as exc:
+            logger.exception("Graph analyzer error for %s", repo)
+            return jsonify({"error": f"Graph generation failed: {exc}"}), 502
+        except Exception as exc:
+            logger.exception("Unexpected graph error for %s", repo)
             return jsonify({"error": f"Unexpected server error: {exc}"}), 500
 
     return app
