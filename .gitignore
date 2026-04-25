@@ -1,1 +1,4 @@
 .venv
+*.db
+*.pyc
+/project/backend/graph/__pycache__/

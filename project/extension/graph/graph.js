@@ -32,7 +32,7 @@
         return {
           nodeFill: "#7aa2ff",
           nodeBorder: "#4f7cff",
-          nodeText: "#e6edf3",
+          nodeText: "#ffffff",
           edge: "#8b949e",
           edgeArrow: "#8b949e",
           highlightViolet: "#a371f7",
@@ -43,7 +43,7 @@
       return {
         nodeFill: "#218bff",
         nodeBorder: "#0969da",
-        nodeText: "#0d1117",
+        nodeText: "#ffffff",
         edge: "#8c959f",
         edgeArrow: "#57606a",
         highlightViolet: "#8250df",
@@ -154,19 +154,23 @@
         `;
       }
 
+      section.hidden = false;
+      section.style.display = "block";
+
       const readmeNode = document.querySelector(
         "#readme, [data-testid='readme'], [data-testid='repository-readme-content'], [data-testid='readme-content']"
       );
       const readmeBlock = readmeNode?.closest("div.Box, section, article") || null;
+      const overviewContainer = document.querySelector(
+        ".OverviewContent-module__Box__PF75K.tmp-pl-lg-3.mt-0"
+      );
       const contentWrapper = document.querySelector("div.prc-PageLayout-ContentWrapper-gR9eG");
 
-      if (contentWrapper) {
-        if (readmeBlock && contentWrapper.contains(readmeBlock)) {
-          // Explicitly mount just below README within the requested content wrapper.
-          readmeBlock.insertAdjacentElement("afterend", section);
-        } else {
-          contentWrapper.appendChild(section);
-        }
+      if (overviewContainer) {
+        overviewContainer.appendChild(section);
+      } else if (contentWrapper) {
+        // Always place the graph at the end of the main content flow.
+        contentWrapper.appendChild(section);
       } else if (readmeBlock?.parentElement) {
         // Keep the graph in the same content flow as README, never in sidebar flow.
         readmeBlock.insertAdjacentElement("afterend", section);
@@ -198,6 +202,8 @@
       if (!input || !button || input.dataset.bound === "true") {
         return;
       }
+
+      input.removeAttribute("autofocus");
 
       const runSearch = () => {
         this.searchAndHighlight(input.value || "");
@@ -385,6 +391,8 @@
               "width": "data(size)",
               "height": "data(size)",
               "color": palette.nodeText,
+              "text-outline-color": "#000000",
+              "text-outline-width": 1,
               "border-width": 1,
               "border-color": palette.nodeBorder
             }
@@ -525,7 +533,9 @@
         ${callersHtml}
       `;
 
-      document.body.appendChild(tooltip);
+      const section = document.getElementById(GRAPH_SECTION_ID);
+      const anchor = section?.querySelector(".ghrg-body") || section || document.body;
+      anchor.appendChild(tooltip);
       this.tooltip = tooltip;
     }
 
